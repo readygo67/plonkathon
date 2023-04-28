@@ -16,7 +16,7 @@ def setup_test():
 
     setup = Setup.from_file("test/powersOfTau28_hez_final_11.ptau")
     dummy_values = Polynomial(
-        list(map(Scalar, [1, 2, 3, 4, 5, 6, 7, 8])), Basis.LAGRANGE
+        list(map(Scalar, [1, 2, 3, 4, 5, 6, 7, 8])), Basis.LAGRANGE  #f(x) 经过 (0,1),(1,2),(2,3),....等几个点。
     )
     program = Program(["c <== a * b"], 8)
     commitment = setup.commit(dummy_values)
