@@ -15,7 +15,7 @@ SETUP_FILE_POWERS_POS = 60
 @dataclass
 class Setup(object):
     #   ([1]₁, [x]₁, ..., [x^{d-1}]₁)
-    # = ( G,    xG,  ...,  x^{d-1}G ), where G is a generator of G_2
+    # = ( G,    xG,  ...,  x^{d-1}G ), where G is a generator of G_1
     # =
     # f(x) = 5 + 20x + 10x^2
     # hash(5, 20, 10)
