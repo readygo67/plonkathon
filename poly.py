@@ -159,6 +159,7 @@ class Polynomial:
     # This lets us work with higher-degree polynomials, and the offset lets us
     # avoid the 0/0 problem when computing a division (as long as the offset is
     # chosen randomly)
+    # TODO(keep)，将f(x) 从order=N，扩展到 4N.
     def to_coset_extended_lagrange(self, offset):
         assert self.basis == Basis.LAGRANGE
         group_order = len(self.values)

@@ -16,6 +16,11 @@ SETUP_FILE_POWERS_POS = 60
 class Setup(object):
     #   ([1]₁, [x]₁, ..., [x^{d-1}]₁)
     # = ( G,    xG,  ...,  x^{d-1}G ), where G is a generator of G_2
+    # =
+    # f(x) = 5 + 20x + 10x^2
+    # hash(5, 20, 10)
+    # [f(x)] =
+    # a0G + a1[xG] + a2[x^2*G]
     powers_of_x: list[G1Point]
     # [x]₂ = xH, where H is a generator of G_2
     X2: G2Point
@@ -63,6 +68,7 @@ class Setup(object):
         return cls(powers_of_x, X2)
 
     # Encodes the KZG commitment that evaluates to the given values in the group
+    # 接受多项式的LAGRANGE形式并转换成系数形式，在形成commitment
     def commit(self, values: Polynomial) -> G1Point:
         assert values.basis == Basis.LAGRANGE
 
