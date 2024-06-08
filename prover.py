@@ -63,10 +63,13 @@ class Prover:
         self.PI = PI  #PI = public input
 
         # Round 1
+        # 得到a(x), b(x), c(x)的commitment[a(x)], [b(x)], [c(x)], 并发送给verifier
+        # verifier 提供beta 和 gamma两个随机数，
         msg_1 = self.round_1(witness)
         self.beta, self.gamma = transcript.round_1(msg_1)
 
         # Round 2
+        # verifier 提供alpba 和 fft_cofactor两个随机数，
         msg_2 = self.round_2()
         self.alpha, self.fft_cofactor = transcript.round_2(msg_2)
 
@@ -83,6 +86,7 @@ class Prover:
 
         return Proof(msg_1, msg_2, msg_3, msg_4, msg_5)
 
+    # TODO(keep), 计算a(x), b(x), c(x)的commitment[a(x)], [b(x)], [c(x)], 并发送给verifier
     def round_1(
         self,
         witness: dict[Optional[str], int],
@@ -123,6 +127,7 @@ class Prover:
         c_1 = setup.commit(self.C)
 
         # Sanity check that witness fulfils gate constraints
+        # TODO(keep), 验证a(x)* Ql(x) + b(x)* Qr(x) + c(x)* Qo(x) + a(x)b(x) * Qm(x) + Qc(x) = 0
         gate_contraints = ( self.A * self.pk.QL
             + self.B * self.pk.QR
             + self.A * self.B * self.pk.QM
@@ -134,6 +139,7 @@ class Prover:
         # Return a_1, b_1, c_1
         return Message1(a_1, b_1, c_1)
 
+    # TODO(keep) 计算permutation 多项式Z，并Z的commitment [Z]发给verifier
     def round_2(self) -> Message2:
         group_order = self.group_order
         setup = self.setup
@@ -147,8 +153,9 @@ class Prover:
         #TODO(keep), k1 = 2, k2 = 3
         Z_values = [Scalar(0)] * (group_order + 1)               # 准备order+1个Z_Values
         roots_of_unity = Scalar(0).roots_of_unity(group_order)
-        Z_values[0] = Scalar(1)
+        Z_values[0] = Scalar(1)  #  Z0 = 1
 
+        #TODO(keep) 约束permutation grand product,
         # 线性约束的递归多项式Z(x)
         # Z(i+1) = Z(i) * [(a[i] + beta * w[i] + gamma) *(b[i] + k1 * beta * w[i] + gamma) *(c[i] + k2 * beta * w[i] + gamma)]/ [(a[i] + beta * S1.values[i] + gamma) *(b[i] + beta S2.values[i] + gamma) *(c[i] + beta * S3.values[i] + gamma)]
         for i in range (group_order):
@@ -186,6 +193,8 @@ class Prover:
         # Return z_1
         return Message2(z_1)
 
+    #TODO(keep) 将gate_constraints, permutation_contstraints, permutation_first_low 三个多项式通过alpha 折叠起来。并计算商多项式Tlo, Tmid, Thi的commitment 给verifier
+    # 这三个多项式在未扩域之前，在 [1, w, w^2, w^3, w^4, w^{order-1}]处的值都是0，所以有消失多项式Zh= X^N-1
     def round_3(self) -> Message3:
         group_order = self.group_order
         setup = self.setup
@@ -231,8 +240,8 @@ class Prover:
 
         # Compute Z_H = X^N - 1, also in evaluation form in the coset
         # TODO(keep)
-        #  不考虑coset时，ZH的系数表示 = x^group_order -1,
-        #  考虑coset时，  ZH的的系数表示是 = (offset *x)^group_order - 1 = (offset^group_order) * x^group_order - 1 ，
+        #  不考虑coset和扩域时，ZH多项式用系数来表示= x^group_order -1,  即常数项是-1，第N项的系数是1，其余项都是0。
+        #  考虑coset和扩域时，ZH_big 多项式用系数来表示= (offset *x)^group_order -1,  即常数项是-1，第N项的系数是(offset^group_order)，其余项都是0。
         #  有两种得到ZH_big 的方式：
         #  方式1：构造系数 = [-1,0,0,...,(offset^group_order),0,0... ]的多项式，对其做fft.
         #  方式2：直接将 x= (offset * w) 带入 x^group_order -1，获得ZH的点值表示
@@ -267,6 +276,7 @@ class Prover:
 
         fft_cofactor = self.fft_cofactor
         alpha = self.alpha
+        #
         # Compute the quotient polynomial (called T(x) in the paper)
         # It is only possible to construct this polynomial if the following
         # equations are true at all roots of unity {1, w ... w^(n-1)}:
@@ -308,6 +318,7 @@ class Prover:
         permutation_first_low = (Z_big - Scalar(1)) * L0_big
 
         # TODO(keep),计算商多项式此处交换 permutation_first_low 和 permutation_contstraints 不影响结果。
+        #  (gate_constraints + permutation_contstraints * alpha + permutation_first_low * alpha ** 2) 在[1, w, w^2, .,,] 均为0。
         QUOT_big = (gate_constraints + permutation_contstraints * alpha + permutation_first_low * alpha ** 2) / ZH_big
         #QUOT_big = (gate_constraints + permutation_first_low * alpha + permutation_contstraints * alpha ** 2) / ZH_big
         print(f"QUOT_big:{QUOT_big.values}")
@@ -359,7 +370,7 @@ class Prover:
 
         return Message3(t_lo_1, t_mid_1, t_hi_1)
 
-    # TODO(keep)，round4, 在zeta 点 打开a(x), b(x), c(x), s1(x), s2(x), z(ωx)
+    # TODO(keep)，round4, 在zeta 点 打开a(x), b(x), c(x), s1(x), s2(x), z(ωx), 将打开结果发送给verifier
     def round_4(self) -> Message4:
         # Compute evaluations to be used in constructing the linearization polynomial.
         group_order = self.group_order
@@ -399,6 +410,7 @@ class Prover:
 
         # Evaluate the Lagrange basis polynomial L0 at zeta
         # Evaluate the vanishing polynomial Z_H(X) = X^n - 1 at zeta
+        # verifier 自己计算 L0_eval 和 ZH_eval
         L0 = Polynomial([Scalar(1)] + [Scalar(0)] * (group_order - 1), Basis.LAGRANGE)
         L0_eval = L0.barycentric_eval(zeta)
         ZH_eval = zeta ** group_order - 1
